@@ -67,8 +67,8 @@ logger.info('If you are forwarding Jupyter Server to a local port 8889, you can 
 if __name__ == "__main__":
     ## Step0: Setup environment
     logger.info('Initializing ...')
-    cluster.scale(jobs=n_workers) # Scale a certain number workers, each worker will appear as a Slurm job
-    client = Client(cluster)
+    # cluster.scale(jobs=n_workers) # Scale a certain number workers, each worker will appear as a Slurm job
+    # client = Client(cluster)
     
     # Make figure directory if not exists
     path_figure.mkdir(exist_ok=True) 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     plt.scatter(stm_demo_subset.lon.data, stm_demo_subset.lat.data, c=bouwjaar, s=0.002, cmap=colormap)
     plt.clim([1900, 2023])
     plt.colorbar()
-    
+    fig.savefig(path_figure / 'construction_year.png')
     
     ## Close the client when finishing
     client.close()
