@@ -7,6 +7,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import sarxarray
 import stm
+import os
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
 
@@ -28,23 +29,24 @@ ch.setLevel(logging.INFO)
 logger.addHandler(ch)
 
 # Paths and files
-path_slc = Path('/project/caroline/Share/stacks/nl_veenweiden_s1_asc_t088/stack') # SLC stack processed by Doris V5
+cwd = Path(os.getcwd())
+path_slc = Path(cwd / 'data/nl_amsterdam_s1_asc_t088') # SLC stack processed by Doris V5
 f_slc = 'cint_srd.raw' # Data file in each date folder under path_slc 
-f_lat = [path_slc/'20210730'/'phi.raw'] # Geo referenced coordinates, lat
-f_lon = [path_slc/'20210730'/'lam.raw'] # Geo referenced coordinates, lon
+f_lat = [path_slc/ 'lat.raw'] # Geo referenced coordinates, lat
+f_lon = [path_slc/ 'lon.raw']  # Geo referenced coordinates, lon
 overwrite_zarr = True # Flag for zarr overwrite
 path_stm = Path('./stm.zarr') # Zarr output storage for STM
 path_figure = Path('./figure') # Output path for figure
-path_polygon = Path('/project/caroline/Public/demo_sarxarray/data/brp/brpgewaspercelen_concept_2022_wgs84.gpkg') #Path to the BRP polygon of NL. Need a absolute path for cluster processing
+path_polygon = Path(cwd / 'data/bag_light_AMS_WGS84.gpkg') #Path to the BRP polygon of NL. Need a absolute path for cluster processing
 
 # Metadata of the SLC stack
-shape = (10018, 68656) # Shape per SLC image
-dtype = np.dtype([('re', np.float32), ('im', np.float32)]) # Data type per image
-reading_chunks = (2000,2000) # Reading chunk size
+shape = (2000, 4000) # Shape per SLC image
+dtype = np.dtype(np.float64) # Data type per image
+reading_chunks = (500, 500) # Reading chunk size
 
 # Size of subset slice. this demoe will only process the slice
-azimuth_subset = range(2000, 6000) # , azimuth direction
-range_subset = range(14000, 22000)  # Subset slice, range direction
+azimuth_subset = range(0, 2000) # Subset slice, azimuth direction
+range_subset = range(0, 4000)  # Subset slice, range direction
 
 # Dask setup
 n_workers = 16 # number of workers
@@ -56,6 +58,7 @@ cluster = SLURMCluster(
     cores=4,
     memory="30 GB", # Total amount of memory per job
     processes=1,  # Number of Python processes per job
+    walltime='1:00:00', # reserve each worker for 1 hour
     scheduler_options={'dashboard_address': ':{}'.format(freesock)}, # Host Dashboard in a free socket
 )
 logger.info('Dask dashboard hosted at port: {}.'.format(freesock))
@@ -74,17 +77,17 @@ if __name__ == "__main__":
     ## Step1: Data loading
     logger.info('Loading data ...')
     # Build slcs lists
-    list_slcs = [p/f_slc for p in path_slc.rglob(('[0-9]' * 8)) if not p.match('20200325')]
-    list_slcs = list_slcs[0:100] # 100 images for example
-    
+    list_slcs = [p for p in path_slc.rglob('*_cint_srd.raw')]
+    list_slcs.sort()
+
     # Load complex data
-    stack = sarxarray.from_binary(list_slcs, shape, dtype=dtype, chunks=reading_chunks)
-    
-    # Load coordinates and assign to stack
+    stack = sarxarray.from_binary(list_slcs, shape, dtype=np.complex64, chunks=reading_chunks)
+
+    # Load coordinates
     lat = sarxarray.from_binary(f_lat, shape, vlabel="lat", dtype=np.float32, chunks=reading_chunks)
     lon = sarxarray.from_binary(f_lon, shape, vlabel="lon", dtype=np.float32, chunks=reading_chunks)
     stack = stack.assign_coords(lat = (("azimuth", "range"), lat.squeeze().lat.data), lon = (("azimuth", "range"), lon.squeeze().lon.data))
-
+    
     
     ## Step2: Make a spatial subset
     logger.info('Slicing SLC stack ...')
@@ -106,8 +109,7 @@ if __name__ == "__main__":
     
     ## Step4: Point selection
     logger.info('Point selection ...')
-    stack_subset2 = stack_subset.sel(azimuth=range(20_00,40_00), range=range(180_00,200_00))
-    stmat = stack_subset2.slcstack.point_selection(threshold=2, method="amplitude_dispersion",chunks=20_000)
+    stmat = stack_subset.slcstack.point_selection(threshold=4, method="amplitude_dispersion",chunks=5000)
 
     fig, ax = plt.subplots()
     plt.scatter(stmat.lon.data, stmat.lat.data, s=0.005)
@@ -137,27 +139,21 @@ if __name__ == "__main__":
     polygons.plot()
 
     # Data enrichment
-    fields_to_query = ['gewas', 'gewascode']
+    fields_to_query = ['bouwjaar']
     stm_demo = stm_demo.stm.enrich_from_polygon(polygons, fields_to_query)
 
     # Subset by Polygons
     stm_demo_subset = stm_demo.stm.subset(method='polygon', polygon=path_polygon)
-    gewascode = stm_demo_subset['gewascode'].compute()
-
-    # Convert gewascode to class numbers (only for visualization)
-    idx = 1
-    classes = gewascode
-    for v in np.unique(gewascode):
-        classes[np.where(gewascode==v)] = idx
-        idx+=1
+    bouwjaar = stm_demo_subset['bouwjaar'].compute()
 
     # Visualize the classes
     import matplotlib.cm as cm
     colormap = cm.jet
     fig, ax = plt.subplots()
-    plt.scatter(stm_demo_subset.lon.data, stm_demo_subset.lat.data, c=classes, s=0.003, cmap=colormap)
+    plt.title("Construction year, PS")
+    plt.scatter(stm_demo_subset.lon.data, stm_demo_subset.lat.data, c=bouwjaar, s=0.002, cmap=colormap)
+    plt.clim([1900, 2023])
     plt.colorbar()
-    fig.savefig(path_figure / 'crop_classes.png')
     
     
     ## Close the client when finishing
