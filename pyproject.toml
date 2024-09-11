@@ -62,7 +62,7 @@ branch = true
 source = ["pydepsi"]
 
 [tool.ruff]
-select = [
+lint.select = [
   "E",  # pycodestyle
   "F",  # pyflakes
   "B",  # flake8-bugbear
@@ -72,12 +72,15 @@ select = [
   "UP",  # pyupgrade (upgrade syntax to current syntax)
   "PLE",  # Pylint error https://github.com/charliermarsh/ruff#error-ple
 ]
+lint.ignore = [
+"D100", "D101", "D104", "D105", "D106", "D107", "D203", "D213", "D413"
+] # docstring style
 
-line-length = 88
-exclude = ["docs", "build"]
+line-length = 120
+exclude = ["docs", "build", "exp", "*.ipynb"]
 # Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py310"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]
