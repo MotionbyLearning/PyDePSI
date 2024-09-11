@@ -4,6 +4,8 @@ This is the repository of WIP, where we are developing a Python package for inte
 
 ## Installation for development
 
+It is assumed that you have `mamba` installed. If not, you can find the installation instructions [here](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html). Other package managers like `conda` or `venv` can be used as well.
+
 Clone this repository and `cd` into it:
 
 ```bash
@@ -11,8 +13,28 @@ git clone git@github.com:MotionbyLearning/PyDePSI.git
 cd PyDePSI
 ```
 
-Create a new conda environment with `mamba`:
+Create a new conda environment (here we give an example name `pydepsi-dev`) with `mamba`.:
 
 ```bash
-mamba env create -f environment.yaml
+mamba create -n pydepsi-dev python=3.12
 ```
+
+Here we use Python 3.12 since we aim to support python 3.10 and above.
+
+Activate the environment:
+
+```bash
+conda activate pydepsi-dev
+```
+
+Install this package in development mode:
+
+```bash
+pip install -e .
+```
+
+## References
+
+- [Python packaging user guide](https://packaging.python.org/)
+- [Testing in Python](https://docs.kedro.org/en/stable/development/automated_testing.html)
+- [Code formatting and linting](https://docs.kedro.org/en/stable/development/linting.html)

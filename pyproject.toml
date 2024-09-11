@@ -33,6 +33,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pycodestyle",
+    "pre-commit",
     "ruff",
 ]
 docs = [
