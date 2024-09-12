@@ -30,7 +30,12 @@ conda activate pydepsi-dev
 Install this package in development mode:
 
 ```bash
-pip install -e .
+pip install -e .[dev,docs]
+```
+
+In the end, install the pre-commit hooks:
+```bash
+pre-commit install
 ```
 
 ## References
