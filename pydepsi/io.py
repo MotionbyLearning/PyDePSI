@@ -1,13 +1,12 @@
 """io methods."""
 
-import os
 import re
 from datetime import datetime
 
 import numpy as np
 
 # Define constants
-SC_N_PATTERN = "\s+([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)"
+SC_N_PATTERN = r"\s+([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)"
 SPPED_OF_LIGHT = 299792458.0
 
 
@@ -17,9 +16,6 @@ def read_metadata(resfile, mode="raw", **kwargs):
     Modified from the original functions in:
     https://github.com/Pbaz98/Caroline-Radar-Coding-Toolbox/blob/main/gecoris/dorisUtils.py.
     """
-    # type of image: stitched: TRUE / burst: FALSE
-    img_type = str(resfile).split(os.sep)[-2].isdigit()
-
     # check crop_flag
     if mode == "coreg" and "crop" in kwargs:
         crop_flag = kwargs["crop"]
@@ -161,13 +157,7 @@ def read_metadata(resfile, mode="raw", **kwargs):
     range_resolution = SPPED_OF_LIGHT / (2 * float(match.group(1)) * 1e6)
 
     # ++++ 21 - nBursts
-    if not img_type:
-        # ++++ 22 - burstInfo
-        pattern = r"burst_(\d+)"
-        match = re.search(pattern, str(resfile))
-        burst_n = int(match.group(1))
-    else:
-        burst_n = None
+    burst_n = None
 
     # ++++ 23 - steering_rate
     pattern = r"Azimuth_steering_rate \(deg/s\):" + SC_N_PATTERN
