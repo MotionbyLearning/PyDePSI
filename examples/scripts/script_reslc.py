@@ -2,7 +2,7 @@
 
 This .py script is designed to be executed with a Dask SLURMCluster on a SLURM HPC.
 It should be executed through a SLURM script by `sbatch` command.
-Please do not run this script by "python xxx.py" on login node.
+Please do not run this script by "python xxx.py" on a login node.
 """
 
 import logging
@@ -71,10 +71,8 @@ path_figure = Path("./figure")  # Output path for figure
 
 # Option 2: Intiate a new SLURMCluster
 # Uncomment the following part to give an exist Dask SLURMCluster
-# ADDRESS = "tcp://XX.X.X.XX:YYYYY" # Manual input: Dask schedular address
-# SOCKET = YYYYY # Manual input: port number. It should be the number after ":" of ADDRESS
-ADDRESS = "tcp://10.0.0.10:44291"
-SOCKET = 44291  # Manual input: port number. It should be the number after ":" of ADDRESS
+ADDRESS = "tcp://XX.X.X.XX:12345" # Manual input: Dask schedular address
+SOCKET = 12345 # Manual input: port number. It should be the number after ":" of ADDRESS
 cluster = None  # Keep this None, needed for an if statement
 logger.info(f"Dask dashboard hosted at port: {SOCKET}.")
 logger.info(
