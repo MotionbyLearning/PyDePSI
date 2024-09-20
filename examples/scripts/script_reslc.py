@@ -1,9 +1,10 @@
-"""Example script of calculating SLC from interferograms
+"""Example script of calculating SLC from interferograms.
 
 This .py script is designed to be executed with a Dask SLURMCluster on a SLURM HPC.
-It should be executed through a SLURM script by `sbatch` command
-Please do not run this script by "python xxx.py" on login node
+It should be executed through a SLURM script by `sbatch` command.
+Please do not run this script by "python xxx.py" on login node.
 """
+
 import logging
 import os
 import socket
@@ -24,6 +25,7 @@ ch = logging.StreamHandler()  # create console handler
 ch.setLevel(logging.INFO)
 logger.addHandler(ch)
 
+
 def get_free_port():
     """Get a non-occupied port number."""
     sock = socket.socket()
@@ -32,15 +34,16 @@ def get_free_port():
     sock.close()  # Free the port, so it can be used later
     return freesock
 
+
 # ---- Config 1: Path Configuration ----
 # Paths and files
-stack_dir = Path('/project/caroline/Share/stacks/nl_veenweiden_s1_dsc_t037/stack') # Intf stack dir
-mother_dir = stack_dir/'20200328' # Mother image dir
-reading_chunks = (2000,2000) # Reading chunks from binary
+stack_dir = Path("/project/caroline/Share/stacks/nl_veenweiden_s1_dsc_t037/stack")  # Intf stack dir
+mother_dir = stack_dir / "20200328"  # Mother image dir
+reading_chunks = (2000, 2000)  # Reading chunks from binary
 
 # Output config
 overwrite_zarr = False  # Flag for zarr overwrite
-writing_chunks = (2000,2000) # Writing chunks to zarr, (azimuth, range)
+writing_chunks = (2000, 2000)  # Writing chunks to zarr, (azimuth, range)
 path_stm = Path("./stm.zarr")  # Zarr output storage for STM
 path_figure = Path("./figure")  # Output path for figure
 
@@ -71,8 +74,8 @@ path_figure = Path("./figure")  # Output path for figure
 # ADDRESS = "tcp://XX.X.X.XX:YYYYY" # Manual input: Dask schedular address
 # SOCKET = YYYYY # Manual input: port number. It should be the number after ":" of ADDRESS
 ADDRESS = "tcp://10.0.0.10:44291"
-SOCKET = 44291 # Manual input: port number. It should be the number after ":" of ADDRESS 
-cluster = None # Keep this None, needed for an if statement
+SOCKET = 44291  # Manual input: port number. It should be the number after ":" of ADDRESS
+cluster = None  # Keep this None, needed for an if statement
 logger.info(f"Dask dashboard hosted at port: {SOCKET}.")
 logger.info(
     f"If you are forwarding Jupyter Server to a local port 8889, \
@@ -81,7 +84,7 @@ logger.info(
 
 if __name__ == "__main__":
     logger.info("Initializing ...")
-    
+
     if cluster is None:
         # Use existing cluster
         client = Client(ADDRESS)
@@ -90,50 +93,53 @@ if __name__ == "__main__":
         # each worker will appear as a Slurm job
         cluster.scale(jobs=N_WORKERS)
         client = Client(cluster)
-    
 
     # Make figure directory if not exists
     path_figure.mkdir(exist_ok=True)
 
     logger.info("Loading data ...")
     # Metadata
-    f_mother_res = mother_dir /'slave.res'
+    f_mother_res = mother_dir / "slave.res"
     metadata = read_metadata(f_mother_res)
-    
+
     # Coordinates
-    f_lam = mother_dir / 'lam.raw'
-    f_phi = mother_dir / 'phi.raw'
-    
+    f_lam = mother_dir / "lam.raw"
+    f_phi = mother_dir / "phi.raw"
+
     # Mother SLC
-    f_mother_slc = mother_dir / 'slave_rsmp_reramped.raw'
-    
+    f_mother_slc = mother_dir / "slave_rsmp_reramped.raw"
+
     # List of SLC
-    f_ifgs = list(sorted(stack_dir.rglob('2*/cint_srd.raw')))
+    f_ifgs = list(sorted(stack_dir.rglob("2*/cint_srd.raw")))
     f_ifgs = f_ifgs[:3]
-    
-    shape=(metadata['n_lines'], metadata['n_pixels'])
-    dtype_slc_ifg = np.dtype([('re', np.float32), ('im', np.float32)])
+
+    shape = (metadata["n_lines"], metadata["n_pixels"])
+    dtype_slc_ifg = np.dtype([("re", np.float32), ("im", np.float32)])
     dtype_lam_phi = np.float32
-    
+
     # Lazy loading mother SLC and ifg stack
     mother = sarxarray.from_binary([f_mother_slc], shape, dtype=dtype_slc_ifg, chunks=reading_chunks)
     ifgs = sarxarray.from_binary(f_ifgs, shape, dtype=dtype_slc_ifg, chunks=reading_chunks)
-    
+
     # Generate reconstructed SLCs
     slc_recon = intf_to_slc(mother, ifgs)
-    
+
     # Extract real and image part. remove other fields. convert to float16
     slc_recon_output = slc_recon.copy()
-    slc_recon_output = slc_recon_output.assign({'real': slc_recon_output['complex'].real.astype(np.float16),
-                           'imag': slc_recon_output['complex'].imag.astype(np.float16)})
-    slc_recon_output = slc_recon_output.drop_vars(['complex', 'amplitude', 'phase']) 
-    
+    slc_recon_output = slc_recon_output.assign(
+        {
+            "real": slc_recon_output["complex"].real.astype(np.float16),
+            "imag": slc_recon_output["complex"].imag.astype(np.float16),
+        }
+    )
+    slc_recon_output = slc_recon_output.drop_vars(["complex", "amplitude", "phase"])
+
     # Rechunk and write as zarr
     slc_recon_output = slc_recon_output.chunk({"azimuth": writing_chunks[0], "range": writing_chunks[1]})
     if overwrite_zarr:
-        slc_recon.to_zarr('nl_veenweiden_s1_dsc_t037.zarr', mode='w')
+        slc_recon.to_zarr("nl_veenweiden_s1_dsc_t037.zarr", mode="w")
     else:
-        slc_recon.to_zarr('nl_veenweiden_s1_dsc_t037.zarr')
-        
+        slc_recon.to_zarr("nl_veenweiden_s1_dsc_t037.zarr")
+
     # Close the client when finishing
     client.close()
