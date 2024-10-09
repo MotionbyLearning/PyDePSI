@@ -123,14 +123,14 @@ if __name__ == "__main__":
                                       vlabel='h2ph', 
                                       dtype=dtype_lam_phi, 
                                       chunks=reading_chunks) # Load h2phs
-    ifgs = ifgs.assign({"h2ph": ifgs_h2ph['h2ph'].astype(np.float16)}) # Add h2ph to ifgs
+    ifgs = ifgs.assign({"h2ph": ifgs_h2ph['h2ph'].astype(np.float32)}) # Add h2ph to ifgs
     ifgs['time'] = [datetime.strptime(file.parts[-2], '%Y%m%d') for file in f_ifgs] # Add time coords to ifgs
 
     # Lazy loading mother SLC 
     mother = sarxarray.from_binary([f_mother_slc], shape, dtype=dtype_slc_ifg, chunks=reading_chunks) # Load mother SLC
     # Construct a dummy h2ph with zeros and assign to mother
     mother_h2ph = mother['amplitude'].copy()
-    mother_h2ph.data = da.zeros(mother_h2ph.shape, dtype=np.float16)
+    mother_h2ph.data = da.zeros(mother_h2ph.shape, dtype=np.float32)
     mother = mother.assign({"h2ph": mother_h2ph})
     # Add time coords to mother
     mother['time'] = [datetime.strptime(f_mother_slc.parts[-2], '%Y%m%d')]
