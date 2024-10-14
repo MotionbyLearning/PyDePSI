@@ -176,9 +176,9 @@ if __name__ == "__main__":
     # Rechunk and write as zarr
     slcs_output = slcs_output.chunk(writing_chunks)
     if overwrite_zarr:
-        slc_recon.to_zarr(path_output_slcs, mode="w")
+        slcs_output.to_zarr(path_output_slcs, mode="w")
     else:
-        slc_recon.to_zarr(path_output_slcs)
+        slcs_output.to_zarr(path_output_slcs)
 
     # Close the client when finishing
     client.close()
