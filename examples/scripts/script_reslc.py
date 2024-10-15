@@ -182,7 +182,9 @@ if __name__ == "__main__":
     if overwrite_zarr:
         slcs_output.to_zarr(path_output_slcs, mode="w")
     else:
-        slcs_output.to_zarr(path_output_slcs)
+        # Append in time dimension if the zarr already exists
+        # Otherwise, a new zarr will be created
+        slcs_output.to_zarr(path_output_slcs, mode="a", append_dim="time") 
 
     # Close the client when finishing
     client.close()
